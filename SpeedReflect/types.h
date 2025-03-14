@@ -23,6 +23,7 @@ namespace speedreflect
 		mostwanted = 0x007C4040,
 		prostreet = 0x00828C25,
 		undercover = 0x008AEC55,
+		undercover_10118 = 0x0087ba75,
 		carbon = 0x0087E926,
 	};
 

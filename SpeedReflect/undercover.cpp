@@ -213,7 +213,54 @@ namespace speedreflect::undercover
         }
     }
 
-    void load_streaming_headers(binary_reader* br, std::int32_t size)
+    __declspec(naked) void detour_vinylmetadata_18()
+    {
+        __asm
+        {
+
+            mov eax, 0x0127069c;
+            mov ecx, vinylmetadata;
+            add ecx, 8;
+            mov[eax], ecx;
+            mov eax, 0x012706a0;
+            mov ecx, 0x0126fd80;
+            mov ecx, [ecx];
+            mov[eax], ecx;
+            push 0x0082ffb1;
+            retn;
+
+        }
+    }
+
+    __declspec(naked) void detour_stream_geo_18()
+    {
+        __asm
+        {
+
+            pushad;
+            call make_geo_writeout;
+            popad;
+            push 0x00818203;
+            retn;
+
+        }
+    }
+
+    __declspec(naked) void detour_stream_tex_18()
+    {
+        __asm
+        {
+
+            pushad;
+            call make_tex_writeout;
+            popad;
+            push 0x0081830c;
+            retn;
+
+        }
+    }
+
+    void load_streaming_headers(binary_reader* br, std::int32_t size, char version)
     {
         br->advance(8);
         auto count = (size - 8) / 0x130;
@@ -244,11 +291,19 @@ namespace speedreflect::undercover
 
         }
 
-        utils::jump(0x00843EC0, detour_stream_geo);
-        utils::jump(0x00843F51, detour_stream_tex);
+        switch (version) {
+        case 0:
+            utils::jump(0x00843EC0, detour_stream_geo);
+            utils::jump(0x00843F51, detour_stream_tex);
+            break;
+        case 18:
+            utils::jump(0x008181e0, detour_stream_geo_18); // TODO REGISTERS DIFFER
+            utils::jump(0x008182b2, detour_stream_tex_18); // TODO REGISTERS AND LATER CODE DIFFER
+            break;
+        }
     }
 
-    void load_globalb_settings(const stdfs::path& file)
+    void load_globalb_settings(const stdfs::path& file, char version)
     {
         const auto filename = file.wstring();
         auto br = binary_reader(filename);
@@ -265,7 +320,7 @@ namespace speedreflect::undercover
             if (id == bin_block_id::cartypeinfo)
             {
 
-                load_streaming_headers(&br, size);
+                load_streaming_headers(&br, size, version);
 
             }
 
@@ -274,7 +329,7 @@ namespace speedreflect::undercover
         }
     }
 
-    void load_vector_tables(const stdfs::path& file)
+    void load_vector_tables(const stdfs::path& file, char version)
     {
         auto br = binary_reader(file.wstring());
         if (!br) return;
@@ -357,18 +412,38 @@ namespace speedreflect::undercover
 
         }
 
-        utils::set(0x00D5F684, table);
-        utils::set(0x00D5F688, total);
-        utils::jump(0x0085E35C, detour_vinylmetadata);
+        switch (version) {
+        case 0:
+            utils::set(0x00D5F684, table);
+            utils::set(0x00D5F688, total);
+            utils::jump(0x0085E35C, detour_vinylmetadata);
+            break;
+        case 18:
+            utils::set(0x0126fd7c, table);
+            utils::set(0x0126fd80, total);
+            utils::jump(0x0082ff9c, detour_vinylmetadata_18); // assembly seems same as 1.0
+            break;
+        }
     }
 
-    void process()
+    void process(char version)
     {
         const auto& directory = stdfs::current_path().parent_path();
         const auto& vinyls_path = directory / "CARS" / "VINYLS" / "VINYLS.BIN";
         const auto& globalb_path = directory / "GLOBAL" / "GLOBALB.LZC";
 
-        load_vector_tables(vinyls_path);
-        load_globalb_settings(globalb_path);
+        switch (version) {
+        case 18:
+            eLoadStreamingSolidPack = (BOOL(__cdecl*)(char*, void(__cdecl*)(void*), void*, int, int))0x00526b40;
+            eLoadStreamingTexturePack = (BOOL(__cdecl*)(char*, void(__cdecl*)(void*), void*, int, int))0x00526df0;
+            break;
+        }
+
+        load_vector_tables(vinyls_path, version);
+        load_globalb_settings(globalb_path, version);
+    }
+
+    void process() {
+        process(0);
     }
 }

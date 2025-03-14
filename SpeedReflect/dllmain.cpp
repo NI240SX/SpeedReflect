@@ -46,6 +46,13 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 			speedreflect::undercover::process();
 
 		}
+		else if (entry == static_cast<std::uint32_t>(speedreflect::entry_points::undercover_10118))
+		{
+
+			MessageBoxA(NULL, "UC 1.0.1.18 detected", "SpeedReflect", MB_ICONERROR);
+			speedreflect::undercover::process(18);
+
+		}
 		else if (entry == static_cast<std::uint32_t>(speedreflect::entry_points::underground1))
 		{
 

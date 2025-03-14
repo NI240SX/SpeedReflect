@@ -7,4 +7,5 @@
 namespace speedreflect::undercover
 {
 	void process();
+	void process(char version);
 }
